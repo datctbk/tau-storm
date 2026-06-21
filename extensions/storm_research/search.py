@@ -42,10 +42,13 @@ class DuckDuckGoSearch:
 
     def search(self, query: str, top_k: int = 5) -> list[SearchResult]:
         try:
-            from duckduckgo_search import DDGS
+            try:
+                from ddgs import DDGS
+            except ImportError:
+                from duckduckgo_search import DDGS
         except ImportError:
             logger.warning(
-                "duckduckgo-search not installed. "
+                "duckduckgo-search / ddgs not installed. "
                 "Install with: pip install duckduckgo-search"
             )
             return []
@@ -140,7 +143,10 @@ def get_search_backend() -> SearchBackend:
 
     # Check DuckDuckGo
     try:
-        import duckduckgo_search  # noqa: F401
+        try:
+            import ddgs  # noqa: F401
+        except ImportError:
+            import duckduckgo_search  # noqa: F401
         logger.debug("Using DuckDuckGo search backend.")
         return DuckDuckGoSearch()
     except ImportError:

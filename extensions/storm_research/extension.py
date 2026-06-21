@@ -322,6 +322,10 @@ class StormResearchExtension(Extension):
                 self._ext_context.set_spinner(f"🔬 {detail}", key="storm")
             except Exception:  # noqa: BLE001
                 pass
+            try:
+                self._ext_context.print(f"[cyan]🔬 STORM:[/cyan] {detail}")
+            except Exception:  # noqa: BLE001
+                pass
         logger.info("STORM [%s] %s", stage, detail)
 
     # ------------------------------------------------------------------
