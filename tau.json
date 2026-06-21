@@ -1,0 +1,7 @@
+{
+  "name": "tau-storm",
+  "version": "0.1.0",
+  "description": "Deep research extension for tau — generates long-form articles with citations using the STORM algorithm.",
+  "author": "datctbk",
+  "extensions": ["extensions/storm_research"]
+}
