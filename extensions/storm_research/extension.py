@@ -22,9 +22,16 @@ from __future__ import annotations
 
 import json
 import logging
+import os
+import sys
 import time
 from pathlib import Path
 from typing import Any
+
+# Ensure storm_research is importable when loaded dynamically as a file
+_package_root = Path(__file__).resolve().parent.parent
+if str(_package_root) not in sys.path:
+    sys.path.insert(0, str(_package_root))
 
 from tau.core.extension import Extension, ExtensionContext
 from tau.core.types import (
@@ -176,7 +183,7 @@ class StormResearchExtension(Extension):
             return True
 
         if command == "research-status":
-            from .search import get_search_backend
+            from storm_research.search import get_search_backend
 
             backend = get_search_backend()
             context.print(f"[cyan]Search backend:[/cyan] {backend.name}")
@@ -198,8 +205,8 @@ class StormResearchExtension(Extension):
         conv_turns: int = 3,
     ) -> str:
         """Run the full STORM pipeline and return the article as markdown."""
-        from .pipeline import StormConfig, StormPipeline
-        from .search import get_search_backend
+        from storm_research.pipeline import StormConfig, StormPipeline
+        from storm_research.search import get_search_backend
 
         config = StormConfig(
             num_perspectives=max(1, min(num_perspectives, 7)),
@@ -235,8 +242,8 @@ class StormResearchExtension(Extension):
         num_perspectives: int = 3,
     ) -> str:
         """Run the pre-writing stage and return the outline."""
-        from .pipeline import StormConfig, StormPipeline
-        from .search import get_search_backend
+        from storm_research.pipeline import StormConfig, StormPipeline
+        from storm_research.search import get_search_backend
 
         config = StormConfig(
             num_perspectives=max(1, min(num_perspectives, 7)),

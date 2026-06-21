@@ -14,8 +14,8 @@ import re
 from dataclasses import dataclass, field
 from typing import Callable
 
-from . import prompts
-from .data import (
+from storm_research import prompts
+from storm_research.data import (
     Conversation,
     DialogueTurn,
     InformationTable,
@@ -24,7 +24,7 @@ from .data import (
     StormArticle,
     parse_outline_markdown,
 )
-from .search import SearchBackend
+from storm_research.search import SearchBackend
 
 logger = logging.getLogger(__name__)
 

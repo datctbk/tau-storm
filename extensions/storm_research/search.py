@@ -12,7 +12,7 @@ import logging
 import os
 from typing import Protocol
 
-from .data import SearchResult
+from storm_research.data import SearchResult
 
 logger = logging.getLogger(__name__)
 
