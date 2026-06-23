@@ -333,7 +333,7 @@ class StormResearchExtension(Extension):
     # ------------------------------------------------------------------
 
     def _output_dir(self) -> Path:
-        path = Path(self._workspace_root).resolve() / ".tau" / "research"
+        path = Path(self._workspace_root).resolve() / "research"
         path.mkdir(parents=True, exist_ok=True)
         return path
 
