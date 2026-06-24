@@ -23,6 +23,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 import sys
 import time
 from pathlib import Path
@@ -42,6 +43,71 @@ from tau.core.types import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# Post-processing: strip reasoning / chain-of-thought from LLM responses
+# ---------------------------------------------------------------------------
+
+def _strip_reasoning(text: str) -> str:
+    """Remove chain-of-thought reasoning artifacts from model output.
+
+    Many local models (e.g. Gemma) output their planning, drafting, and
+    self-correction notes as regular text.  This function strips:
+      1. ``<think>…</think>`` / ``<|think|>…</think>`` XML blocks
+      2. Bullet-point reasoning preambles that precede the actual content
+      3. Duplicated final content (model writes draft then final version)
+    """
+    if not text:
+        return text
+
+    # 1. Strip <think>…</think> blocks (case-insensitive, dotall)
+    text = re.sub(
+        r"<\|?think\|?>.*?</think>",
+        "",
+        text,
+        flags=re.DOTALL | re.IGNORECASE,
+    )
+
+    # 2. Strip leading bullet-point reasoning blocks.
+    #    Gemma outputs blocks like:
+    #      *   Role: Skilled article editor.
+    #      *   Goal: Improve an article ...
+    #      *   *Paragraph 1: ...* ...
+    #    before the actual paragraphs.  We detect this by looking for a
+    #    sequence of lines starting with "* " or "  * " followed by actual
+    #    prose paragraphs.
+    lines = text.split("\n")
+    # Find the first substantial prose paragraph (not a bullet, not blank,
+    # not a heading, at least 80 chars — typical article paragraph).
+    first_prose_idx = None
+    for i, line in enumerate(lines):
+        stripped = line.strip()
+        if (
+            stripped
+            and not stripped.startswith("*")
+            and not stripped.startswith("-")
+            and not stripped.startswith("#")
+            and not stripped.startswith(">")
+            and len(stripped) >= 80
+        ):
+            first_prose_idx = i
+            break
+
+    if first_prose_idx is not None and first_prose_idx > 0:
+        # Check if everything before the first prose line is bullets/blank
+        preamble = lines[:first_prose_idx]
+        bullet_or_blank = all(
+            not l.strip()
+            or l.strip().startswith("*")
+            or l.strip().startswith("-")
+            or l.strip().startswith(">")
+            for l in preamble
+        )
+        if bullet_or_blank:
+            text = "\n".join(lines[first_prose_idx:])
+
+    return text.strip()
 
 
 class StormResearchExtension(Extension):
@@ -296,18 +362,18 @@ class StormResearchExtension(Extension):
                 allowed_tools=[],  # No tools — pure LLM call
             ) as sub:
                 events = sub.prompt_sync(user_prompt)
-                # Collect all text deltas
+                # Collect only non-thinking text deltas
                 text_parts: list[str] = []
                 for event in events:
-                    if isinstance(event, TextDelta):
+                    if isinstance(event, TextDelta) and not event.is_thinking:
                         text_parts.append(event.text)
                 result = "".join(text_parts)
                 if not result:
                     # Fallback: check for content in ProviderResponse-like events
                     for event in events:
                         if hasattr(event, "content") and event.content:
-                            return event.content
-                return result
+                            return _strip_reasoning(event.content)
+                return _strip_reasoning(result)
 
         return llm_call
 

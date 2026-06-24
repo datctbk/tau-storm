@@ -6,6 +6,18 @@ from the original STORM codebase.
 """
 
 # ---------------------------------------------------------------------------
+# Anti-reasoning suffix — appended to every prompt to prevent models (e.g.
+# Gemma) from dumping their chain-of-thought into the output.
+# ---------------------------------------------------------------------------
+
+_NO_REASONING = """
+
+IMPORTANT: Output ONLY your final answer. Do NOT include any internal \
+reasoning, planning, drafting notes, bullet-point outlines, self-correction \
+comments, or "thinking out loud" text. No meta-commentary about what you \
+are about to write. Just the finished content, nothing else."""
+
+# ---------------------------------------------------------------------------
 # Stage 1 — Find related topics
 # ---------------------------------------------------------------------------
 
@@ -25,7 +37,7 @@ it is relevant.  Format your response as a numbered list:
 
 1. <Topic Name> — <why it's relevant>
 2. ...
-"""
+""" + _NO_REASONING
 
 # ---------------------------------------------------------------------------
 # Stage 2 — Generate perspectives / personas
@@ -48,7 +60,7 @@ related to this topic.  For each editor, provide:
 Format your response as a numbered list:
 1. <Role Title>: <Description of focus and questions>
 2. ...
-"""
+""" + _NO_REASONING
 
 # ---------------------------------------------------------------------------
 # Stage 3a — Writer asks a question (with persona)
@@ -71,7 +83,7 @@ Avoid repeating questions that have already been asked.
 If you believe you have gathered enough information from this perspective, \
 respond with exactly: "Thank you so much for your help!"
 
-Your question:"""
+Your question:""" + _NO_REASONING
 
 ASK_QUESTION_INITIAL = """\
 You are a writer researching the topic below. You are approaching this topic \
@@ -83,7 +95,7 @@ Your perspective: {persona}
 This is the start of your conversation with an expert. Ask your first question \
 to begin exploring the topic from your unique angle.
 
-Your question:"""
+Your question:""" + _NO_REASONING
 
 # ---------------------------------------------------------------------------
 # Stage 3b — Expert answers (grounded in search results)
@@ -104,7 +116,7 @@ Provide a thorough, well-sourced answer. Cite specific sources using [N] notatio
 where N corresponds to the source number above. If the search results don't contain \
 relevant information, say so honestly.
 
-Your answer:"""
+Your answer:""" + _NO_REASONING
 
 GENERATE_SEARCH_QUERIES = """\
 You are a research assistant. Given the topic and question below, generate \
@@ -114,7 +126,7 @@ to answer the question.
 Topic: {topic}
 Question: {question}
 
-Return each query on a separate line, with no numbering or bullet points:"""
+Return each query on a separate line, with no numbering or bullet points:""" + _NO_REASONING
 
 # ---------------------------------------------------------------------------
 # Stage 4 — Generate outline
@@ -140,7 +152,7 @@ The outline should:
 
 Output ONLY the outline using Markdown headings (## for main sections, \
 ### for subsections, #### for sub-subsections). Do not include any content, \
-just the section headings:"""
+just the section headings:""" + _NO_REASONING
 
 # ---------------------------------------------------------------------------
 # Stage 5 — Generate article section content
@@ -164,8 +176,9 @@ Write the content for this section. Requirements:
 3. Be thorough but concise — aim for 2-4 paragraphs
 4. Use specific facts, dates, and details from the sources
 5. Do not include the section heading — only the body text
+6. Output ONLY the final polished paragraphs — no drafts, no planning notes
 
-Section content:"""
+Section content:""" + _NO_REASONING
 
 # ---------------------------------------------------------------------------
 # Stage 6 — Polish article (write lead section + cleanup)
@@ -186,7 +199,7 @@ of the article. The lead should:
 3. Give the reader a high-level overview
 4. Not include citations
 
-Lead section:"""
+Lead section:""" + _NO_REASONING
 
 POLISH_ARTICLE = """\
 You are a skilled editor polishing a draft article for publication.
@@ -203,4 +216,4 @@ Please polish this article by:
 4. Ensuring consistent citation formatting [N]
 5. Keeping all factual content and citations intact
 
-Output the polished article (complete text with all sections):"""
+Output the polished article (complete text with all sections):""" + _NO_REASONING
