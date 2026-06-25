@@ -144,15 +144,30 @@ Research information collected:
 
 Create a well-organized outline using Markdown heading syntax (##, ###, ####). \
 The outline should:
-1. Start with an Introduction / Overview section
-2. Cover all major aspects discovered during research
+1. Start with a "Definition and Overview" or "Introduction" section
+2. Cover ALL major aspects discovered during research
 3. Be organized logically (chronological, thematic, or by importance)
 4. Include subsections where appropriate for depth
-5. End with a conclusion or summary section
+5. End with a "Legacy" or "Impact" or "See Also" section
+6. Have at least 5-8 top-level sections (## headings) for comprehensive coverage
 
-Output ONLY the outline using Markdown headings (## for main sections, \
-### for subsections, #### for sub-subsections). Do not include any content, \
-just the section headings:""" + _NO_REASONING
+Output ONLY the Markdown headings. Do not include any content or explanations, \
+just the section headings. Do not start with preamble like "Here is the outline" — \
+start directly with the first ## heading.
+
+Example of the expected format:
+## Introduction
+## History and Development
+### Early Research
+### Key Breakthroughs
+## Technical Architecture
+### Neural Network Design
+### Search Algorithm
+## Applications
+## Impact and Legacy
+## See Also
+
+Now generate the outline for {topic}:""" + _NO_REASONING
 
 # ---------------------------------------------------------------------------
 # Stage 5 — Generate article section content

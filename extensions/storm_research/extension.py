@@ -362,17 +362,36 @@ class StormResearchExtension(Extension):
                 allowed_tools=[],  # No tools — pure LLM call
             ) as sub:
                 events = sub.prompt_sync(user_prompt)
-                # Collect only non-thinking text deltas
-                text_parts: list[str] = []
+                # Collect thinking and non-thinking text separately
+                visible_parts: list[str] = []
+                thinking_parts: list[str] = []
                 for event in events:
-                    if isinstance(event, TextDelta) and not event.is_thinking:
-                        text_parts.append(event.text)
-                result = "".join(text_parts)
-                if not result:
-                    # Fallback: check for content in ProviderResponse-like events
+                    if isinstance(event, TextDelta):
+                        if event.is_thinking:
+                            thinking_parts.append(event.text)
+                        else:
+                            visible_parts.append(event.text)
+
+                visible = "".join(visible_parts).strip()
+                thinking = "".join(thinking_parts).strip()
+
+                # Prefer non-thinking text; if empty, fall back to thinking
+                # text (some models put ALL output in think tags).
+                if visible:
+                    result = visible
+                elif thinking:
+                    logger.debug(
+                        "STORM: visible text empty, falling back to "
+                        "thinking text (%d chars)", len(thinking),
+                    )
+                    result = thinking
+                else:
+                    # Last resort: check ProviderResponse events
                     for event in events:
                         if hasattr(event, "content") and event.content:
                             return _strip_reasoning(event.content)
+                    return ""
+
                 return _strip_reasoning(result)
 
         return llm_call

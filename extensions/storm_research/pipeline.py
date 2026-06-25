@@ -30,6 +30,45 @@ logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
+# Outline response cleaner
+# ---------------------------------------------------------------------------
+
+# Phrases that indicate a heading is meta-commentary, not a real section.
+_META_HEADING_PATTERNS = re.compile(
+    r"(?:here is|here\'s|my outline|master framework|i will|"
+    r"outline for|the following|below is|let me|as requested)",
+    re.IGNORECASE,
+)
+
+
+def _clean_outline_response(text: str) -> str:
+    """Strip meta-commentary from an outline response.
+
+    Some models (esp. Gemma) produce lines like::
+
+        ## Here is the "Master Framework" I will use for your outline:
+
+    which are not real section headings.  This function removes:
+      - Non-heading lines (preamble/commentary)
+      - Heading lines whose text looks like meta-commentary
+    """
+    cleaned_lines: list[str] = []
+    for line in text.strip().splitlines():
+        stripped = line.strip()
+        # Keep only heading lines (## ...)
+        heading_match = re.match(r"^(#{1,6})\s+(.*)", stripped)
+        if not heading_match:
+            # Non-heading line: skip unless it's blank (preserve spacing)
+            continue
+        heading_text = heading_match.group(2).strip()
+        # Skip meta-commentary headings
+        if _META_HEADING_PATTERNS.search(heading_text):
+            continue
+        cleaned_lines.append(stripped)
+    return "\n".join(cleaned_lines)
+
+
+# ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
 
@@ -318,7 +357,37 @@ class StormPipeline:
             "You are a skilled article outline writer.",
             prompt,
         )
-        return parse_outline_markdown(topic, response)
+
+        # Clean the response: strip meta-commentary lines before parsing
+        response = _clean_outline_response(response)
+
+        outline = parse_outline_markdown(topic, response)
+
+        # Fallback: if the outline has too few sections, generate a default
+        if len(outline.children) < 3:
+            logger.warning(
+                "STORM: outline only has %d sections, generating default",
+                len(outline.children),
+            )
+            outline = self._default_outline(topic)
+
+        return outline
+
+    def _default_outline(self, topic: str) -> SectionNode:
+        """Generate a sensible default outline when the LLM produces too few sections."""
+        root = SectionNode(name=topic)
+        sections = [
+            "Definition and Overview",
+            "History and Development",
+            "Technical Architecture",
+            "Key Features and Innovations",
+            "Applications and Impact",
+            "Criticism and Limitations",
+            "Legacy and Influence",
+        ]
+        for name in sections:
+            root.add_child(SectionNode(name=name))
+        return root
 
     # ------------------------------------------------------------------
     # Stage 5: Generate article sections
