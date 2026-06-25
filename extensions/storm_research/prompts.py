@@ -143,28 +143,42 @@ Research information collected:
 {collected_info}
 
 Create a well-organized outline using Markdown heading syntax (##, ###, ####). \
-The outline should:
+The outline MUST:
 1. Start with a "Definition and Overview" or "Introduction" section
 2. Cover ALL major aspects discovered during research
 3. Be organized logically (chronological, thematic, or by importance)
-4. Include subsections where appropriate for depth
+4. Include DEEP subsections (### and ####) under each main section for thorough coverage
 5. End with a "Legacy" or "Impact" or "See Also" section
-6. Have at least 5-8 top-level sections (## headings) for comprehensive coverage
+6. Have at least 5-8 top-level sections (## headings)
+7. Have at least 15-25 total headings across all levels (##, ###, ####)
+8. Each ## section should have 2-4 subsections (### headings)
 
 Output ONLY the Markdown headings. Do not include any content or explanations, \
 just the section headings. Do not start with preamble like "Here is the outline" — \
 start directly with the first ## heading.
 
-Example of the expected format:
+Example of the expected depth and format:
 ## Introduction
+### Definition and Overview
+### Core Concepts
+#### Concept A
+#### Concept B
 ## History and Development
 ### Early Research
 ### Key Breakthroughs
+### Evolution of the Approach
 ## Technical Architecture
-### Neural Network Design
-### Search Algorithm
-## Applications
-## Impact and Legacy
+### Component Design
+#### Sub-Component 1
+#### Sub-Component 2
+### Algorithm Details
+#### Selection Mechanism
+#### Training Loop
+## Applications and Impact
+### Domain 1
+### Domain 2
+## Criticism and Limitations
+## Legacy and Influence
 ## See Also
 
 Now generate the outline for {topic}:""" + _NO_REASONING

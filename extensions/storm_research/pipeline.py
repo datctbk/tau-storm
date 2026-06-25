@@ -408,30 +408,79 @@ class StormPipeline:
 
         outline = parse_outline_markdown(topic, response)
 
-        # Fallback: if the outline has too few sections, generate a default
+        # Count total leaf nodes — these are the sections that get content
+        def _count_leaves(node: SectionNode) -> int:
+            if not node.children:
+                return 1
+            return sum(_count_leaves(c) for c in node.children)
+
+        leaf_count = _count_leaves(outline)
+
+        # Fallback: if the outline has too few sections OR is too flat
         if len(outline.children) < 3:
             logger.warning(
                 "STORM: outline only has %d sections, generating default",
                 len(outline.children),
             )
             outline = self._default_outline(topic)
+        elif leaf_count < 10:
+            logger.warning(
+                "STORM: outline is too flat (%d leaf sections), "
+                "generating default with subsections",
+                leaf_count,
+            )
+            outline = self._default_outline(topic)
 
         return outline
 
     def _default_outline(self, topic: str) -> SectionNode:
-        """Generate a sensible default outline when the LLM produces too few sections."""
+        """Generate a sensible default outline when the LLM produces too few sections.
+
+        The outline must have subsections so that ``_fill_sections`` generates
+        content for each leaf node, resulting in a comprehensive article.
+        """
         root = SectionNode(name=topic)
-        sections = [
-            "Definition and Overview",
-            "History and Development",
-            "Technical Architecture",
-            "Key Features and Innovations",
-            "Applications and Impact",
-            "Criticism and Limitations",
-            "Legacy and Influence",
-        ]
-        for name in sections:
-            root.add_child(SectionNode(name=name))
+
+        # Build a rich hierarchical outline
+        structure = {
+            "Introduction": [
+                "Definition and Overview",
+                "Core Concepts",
+            ],
+            "History and Development": [
+                "Origins and Background",
+                "Key Milestones",
+                "Evolution Over Time",
+            ],
+            "Technical Architecture": [
+                "System Design",
+                "Core Algorithm",
+                "Key Components",
+            ],
+            "Key Features and Innovations": [
+                "Novel Contributions",
+                "Comparison with Prior Approaches",
+            ],
+            "Applications and Impact": [
+                "Primary Use Cases",
+                "Broader Influence",
+            ],
+            "Criticism and Limitations": [
+                "Known Challenges",
+                "Areas for Improvement",
+            ],
+            "Legacy and Influence": [
+                "Impact on the Field",
+                "Future Directions",
+            ],
+        }
+
+        for section_name, subsections in structure.items():
+            section = SectionNode(name=section_name)
+            for sub_name in subsections:
+                section.add_child(SectionNode(name=sub_name))
+            root.add_child(section)
+
         return root
 
     # ------------------------------------------------------------------
