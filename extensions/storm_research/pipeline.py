@@ -80,15 +80,38 @@ _BROKEN_LEAD_PATTERNS = re.compile(
 )
 
 
-def _is_broken_lead(text: str) -> bool:
+def _is_broken_lead(text: str, topic: str = "") -> bool:
     """Return True if the lead section looks like a broken response.
 
-    Some models respond to 'write a summary' by offering editing services
-    or asking the user to paste text.
+    Checks for:
+      - Empty or very short responses
+      - Editing-service roleplay patterns
+      - Off-topic content (topic name not mentioned)
+      - Multi-section structure (headings indicate a mini-article, not a summary)
     """
     if not text or len(text.strip()) < 50:
         return True
-    return bool(_BROKEN_LEAD_PATTERNS.search(text))
+    if _BROKEN_LEAD_PATTERNS.search(text):
+        return True
+
+    # Off-topic check: the topic should appear somewhere in the lead
+    if topic and topic.lower() not in text.lower():
+        logger.warning(
+            "STORM: lead section doesn't mention topic %r", topic,
+        )
+        return True
+
+    # Structure check: a lead section should be plain paragraphs,
+    # not a multi-section document with markdown headings
+    heading_count = len(re.findall(r"^#{1,4}\s+", text, re.MULTILINE))
+    if heading_count >= 3:
+        logger.warning(
+            "STORM: lead section has %d headings (expected plain paragraphs)",
+            heading_count,
+        )
+        return True
+
+    return False
 
 # ---------------------------------------------------------------------------
 # Configuration
@@ -477,35 +500,48 @@ class StormPipeline:
         info_table: InformationTable,
     ) -> StormArticle:
         """Add a lead section and optionally polish the article."""
-        # Generate lead/summary section
+        # Generate lead/summary section.
+        # Truncate article text to prevent context-window overload which
+        # causes some models to generate off-topic content.
         article_text = article.to_markdown()
+        truncated = article_text[:4000]
+        if len(article_text) > 4000:
+            truncated += "\n\n[... article continues ...]"
+
         prompt = prompts.WRITE_LEAD_SECTION.format(
             topic=topic,
-            article_text=article_text,
+            article_text=truncated,
         )
         lead_content = self.llm(
-            "You are an encyclopedic article writer. Write only article "
-            "content — never offer services, ask questions, or provide "
-            "instructions.",
+            f"You are writing an encyclopedia article about {topic}. "
+            f"Write only article content — never offer services, ask "
+            f"questions, or provide instructions.",
             prompt,
         )
 
-        # Validate: detect obviously broken lead sections (model offering
-        # editing services, asking for text, etc.)
-        if _is_broken_lead(lead_content):
+        # Validate: detect broken lead sections (off-topic, editing
+        # services, multi-section structure, etc.)
+        if _is_broken_lead(lead_content, topic):
             logger.warning("STORM: lead section looks broken, regenerating")
             lead_content = self.llm(
-                f"Write a 2-3 paragraph encyclopedic summary of {topic}.",
-                f"Summarize this article in 2-3 paragraphs. No citations, "
-                f"no preamble, just the summary paragraphs:\n\n"
-                f"{article_text[:4000]}",
+                f"You are writing an encyclopedia article about {topic}.",
+                f"Write exactly 2-3 paragraphs summarizing {topic}. "
+                f"The first sentence MUST mention {topic} by name. "
+                f"No headings, no citations, no preamble — just the "
+                f"summary paragraphs.\n\n"
+                f"Key facts from the article:\n{truncated[:2000]}",
             )
             # If still broken, generate a minimal fallback
-            if _is_broken_lead(lead_content):
+            if _is_broken_lead(lead_content, topic):
                 lead_content = (
                     f"{topic} is a topic in artificial intelligence and "
                     f"machine learning. See the sections below for details."
                 )
+
+        # Strip any markdown headings from the lead (should be plain prose)
+        lead_content = re.sub(
+            r"^#{1,6}\s+.*$", "", lead_content, flags=re.MULTILINE
+        ).strip()
 
         # Insert lead as the first child of the root
         lead_node = SectionNode(name="Summary", content=lead_content)
