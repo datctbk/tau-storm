@@ -196,6 +196,9 @@ Full article outline:
 
 Section to write: {section_name}
 
+Content of previously written sections (refer to this to avoid repeating the same definitions, explanations, or introductory facts. Build on top of previous sections instead of repeating them):
+{previous_sections}
+
 Relevant source material:
 {relevant_sources}
 
@@ -205,7 +208,8 @@ Write the content for this section. Requirements:
 3. Be thorough but concise — aim for 2-4 paragraphs
 4. Use specific facts, dates, and details from the sources
 5. Do not include the section heading — only the body text
-6. Output ONLY the final polished paragraphs — no drafts, no planning notes
+6. Do not repeat facts, definitions, or explanations that have already been covered in previous sections. Refer back to them if needed, but focus on the specific aspects of the current section.
+7. Output ONLY the final polished paragraphs — no drafts, no planning notes
 
 Section content:""" + _NO_REASONING
 

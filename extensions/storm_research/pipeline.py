@@ -36,7 +36,8 @@ logger = logging.getLogger(__name__)
 # Phrases that indicate a heading is meta-commentary, not a real section.
 _META_HEADING_PATTERNS = re.compile(
     r"(?:here is|here\'s|my outline|master framework|i will|"
-    r"outline for|the following|below is|let me|as requested)",
+    r"outline for|the following|below is|let me|as requested|"
+    r"expect from|makes a good|template preview|ready to|proposed outline)",
     re.IGNORECASE,
 )
 
@@ -398,8 +399,13 @@ class StormPipeline:
             topic=topic,
             collected_info=collected_text,
         )
+        system_prompt = (
+            f"You are a raw data generator. Generate only the Markdown headings (##, ###, ####) "
+            f"for a detailed hierarchical outline about {topic}. Never output any intro, preamble, "
+            f"explanations, questions, or conversational commentary. Start directly with the first heading."
+        )
         response = self.llm(
-            "You are a skilled article outline writer.",
+            system_prompt,
             prompt,
         )
 
@@ -516,27 +522,44 @@ class StormPipeline:
         node: SectionNode,
         outline_text: str,
         info_table: InformationTable,
+        written_sections: list[tuple[str, str]] | None = None,
     ) -> None:
         """Recursively generate content for sections that have no children or for all nodes."""
+        if written_sections is None:
+            written_sections = []
+
         if node.children:
             for child in node.children:
-                self._fill_sections(topic, child, outline_text, info_table)
+                self._fill_sections(
+                    topic, child, outline_text, info_table, written_sections
+                )
         else:
             # Leaf section — generate content
             self._progress("section", f"Writing: {node.name}")
             relevant = info_table.retrieve(f"{topic} {node.name}", top_k=8)
             sources_text = self._format_search_results_with_citations(relevant)
 
+            # Format previously written sections to pass as context
+            if written_sections:
+                prev_text = ""
+                for name, content in written_sections:
+                    prev_text += f"## {name}\n{content}\n\n"
+            else:
+                prev_text = "No sections have been written yet."
+
             prompt = prompts.WRITE_SECTION.format(
                 topic=topic,
                 outline=outline_text,
                 section_name=node.name,
                 relevant_sources=sources_text,
+                previous_sections=prev_text,
             )
             node.content = self.llm(
                 "You are an encyclopedic article writer.",
                 prompt,
             )
+            # Add to written sections for subsequent runs
+            written_sections.append((node.name, node.content))
 
     # ------------------------------------------------------------------
     # Stage 6: Polish
