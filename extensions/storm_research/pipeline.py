@@ -68,6 +68,28 @@ def _clean_outline_response(text: str) -> str:
     return "\n".join(cleaned_lines)
 
 
+# Phrases that indicate the model is roleplaying as an editor/assistant
+# instead of writing actual article content.
+_BROKEN_LEAD_PATTERNS = re.compile(
+    r"(?:paste your (?:article|text)|i am ready to (?:assist|help|edit)|"
+    r"please (?:provide|paste|send|share) (?:your|the) |"
+    r"proofreading|copyediting|substantive editing|"
+    r"developmental editing|level of editing|"
+    r"target audience|desired tone|whenever you are ready)",
+    re.IGNORECASE,
+)
+
+
+def _is_broken_lead(text: str) -> bool:
+    """Return True if the lead section looks like a broken response.
+
+    Some models respond to 'write a summary' by offering editing services
+    or asking the user to paste text.
+    """
+    if not text or len(text.strip()) < 50:
+        return True
+    return bool(_BROKEN_LEAD_PATTERNS.search(text))
+
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
@@ -461,7 +483,29 @@ class StormPipeline:
             topic=topic,
             article_text=article_text,
         )
-        lead_content = self.llm("You are a skilled article editor.", prompt)
+        lead_content = self.llm(
+            "You are an encyclopedic article writer. Write only article "
+            "content — never offer services, ask questions, or provide "
+            "instructions.",
+            prompt,
+        )
+
+        # Validate: detect obviously broken lead sections (model offering
+        # editing services, asking for text, etc.)
+        if _is_broken_lead(lead_content):
+            logger.warning("STORM: lead section looks broken, regenerating")
+            lead_content = self.llm(
+                f"Write a 2-3 paragraph encyclopedic summary of {topic}.",
+                f"Summarize this article in 2-3 paragraphs. No citations, "
+                f"no preamble, just the summary paragraphs:\n\n"
+                f"{article_text[:4000]}",
+            )
+            # If still broken, generate a minimal fallback
+            if _is_broken_lead(lead_content):
+                lead_content = (
+                    f"{topic} is a topic in artificial intelligence and "
+                    f"machine learning. See the sections below for details."
+                )
 
         # Insert lead as the first child of the root
         lead_node = SectionNode(name="Summary", content=lead_content)

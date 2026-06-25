@@ -200,21 +200,22 @@ Section content:""" + _NO_REASONING
 # ---------------------------------------------------------------------------
 
 WRITE_LEAD_SECTION = """\
-You are writing the lead summary for a comprehensive article.
+Below is a comprehensive article about "{topic}". Your task is to write a \
+lead summary section for this article.
 
-Topic: {topic}
-
-Full article:
+--- BEGIN ARTICLE ---
 {article_text}
+--- END ARTICLE ---
 
-Write a concise lead section (2-3 paragraphs) that summarizes the key points \
-of the article. The lead should:
-1. Introduce the topic clearly
+Write a concise lead section (2-3 paragraphs) that summarizes the article above. \
+The lead section should:
+1. Introduce "{topic}" clearly in the first sentence
 2. Highlight the most important aspects covered in the article
-3. Give the reader a high-level overview
-4. Not include citations
+3. Give the reader a high-level overview of the subject
+4. Be written in an encyclopedic, neutral tone
+5. Not include citations — this is a summary only
 
-Lead section:""" + _NO_REASONING
+Start writing the lead section paragraphs directly:""" + _NO_REASONING
 
 POLISH_ARTICLE = """\
 You are a skilled editor polishing a draft article for publication.
