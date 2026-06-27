@@ -555,7 +555,9 @@ class StormPipeline:
                 previous_sections=prev_text,
             )
             node.content = self.llm(
-                "You are a direct, factual writer. Write the section content directly based on the sources. "
+                "You are a direct, factual writer. Write the section content directly. "
+                "If relevant sources are provided in the prompt, base your writing on them and include citations. "
+                "If no sources are provided or they are marked as not found, write the section content using your own pre-trained knowledge on the topic and do not include any citations. "
                 "Never include any greetings, intro, self-reference, roleplay, or confirmation like 'I accept this role' or 'I am ready'. "
                 "Start writing the first paragraph of the section content immediately.",
                 prompt,

@@ -201,13 +201,13 @@ Relevant source material:
 
 Write the content for this section. Requirements:
 1. Write in an encyclopedic, neutral, informative tone
-2. Include inline citations using [N] notation referencing the sources above
+2. Include inline citations using [N] notation referencing the sources above (if sources are provided. If no sources are provided, write the section using your own pre-trained knowledge and omit citations).
 3. Be thorough but concise — aim for 2-4 paragraphs
-4. Use specific facts, dates, and details from the sources
+4. Use specific facts, dates, and details from the sources (or from your pre-trained knowledge if no sources are provided)
 5. Do not include the section heading — only the body text
 6. Do not repeat facts, definitions, or explanations that have already been covered in previous sections. Refer back to them if needed, but focus on the specific aspects of the current section.
 7. Output ONLY the final polished paragraphs — no drafts, no planning notes
-8. CRITICAL: Do NOT write any greetings, conversational intro, preamble, or acknowledgment of the role (such as "I accept this role", "I am ready", "Please provide a topic", or similar). Start writing the first sentence of the section text immediately.
+8. CRITICAL: Do NOT write any greetings, conversational intro, preamble, or acknowledgment of the role (such as "I accept this role", "I am ready", "Please provide a topic", or similar). If no relevant sources are listed above, write the section content directly using your pre-trained knowledge. Start writing the first sentence of the section text immediately.
 
 Section content (start writing directly):""" + _NO_REASONING
 
