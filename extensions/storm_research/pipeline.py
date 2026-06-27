@@ -555,7 +555,9 @@ class StormPipeline:
                 previous_sections=prev_text,
             )
             node.content = self.llm(
-                "You are an encyclopedic article writer.",
+                "You are a direct, factual writer. Write the section content directly based on the sources. "
+                "Never include any greetings, intro, self-reference, roleplay, or confirmation like 'I accept this role' or 'I am ready'. "
+                "Start writing the first paragraph of the section content immediately.",
                 prompt,
             )
             # Add to written sections for subsequent runs

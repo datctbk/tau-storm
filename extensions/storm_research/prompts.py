@@ -188,15 +188,12 @@ Now generate the outline for {topic}:""" + _NO_REASONING
 # ---------------------------------------------------------------------------
 
 WRITE_SECTION = """\
-You are writing a section of a comprehensive article about the following topic.
+Write the body content for the section "{section_name}" of a comprehensive article about "{topic}" based on the source material provided below.
 
-Topic: {topic}
 Full article outline:
 {outline}
 
-Section to write: {section_name}
-
-Content of previously written sections (refer to this to avoid repeating the same definitions, explanations, or introductory facts. Build on top of previous sections instead of repeating them):
+Content of previously written sections (build on top of these, do not repeat them):
 {previous_sections}
 
 Relevant source material:
@@ -210,8 +207,9 @@ Write the content for this section. Requirements:
 5. Do not include the section heading — only the body text
 6. Do not repeat facts, definitions, or explanations that have already been covered in previous sections. Refer back to them if needed, but focus on the specific aspects of the current section.
 7. Output ONLY the final polished paragraphs — no drafts, no planning notes
+8. CRITICAL: Do NOT write any greetings, conversational intro, preamble, or acknowledgment of the role (such as "I accept this role", "I am ready", "Please provide a topic", or similar). Start writing the first sentence of the section text immediately.
 
-Section content:""" + _NO_REASONING
+Section content (start writing directly):""" + _NO_REASONING
 
 # ---------------------------------------------------------------------------
 # Stage 6 — Polish article (write lead section + cleanup)
