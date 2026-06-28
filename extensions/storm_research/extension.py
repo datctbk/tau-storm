@@ -133,8 +133,12 @@ class StormResearchExtension(Extension):
     )
 
     def __init__(self) -> None:
+        import threading
         self._ext_context: ExtensionContext | None = None
         self._workspace_root: str = "."
+        self._is_running = False
+        self._active_topic = ""
+        self._lock = threading.Lock()
 
     def on_load(self, context: ExtensionContext) -> None:
         self._ext_context = context
@@ -227,25 +231,23 @@ class StormResearchExtension(Extension):
             if not args.strip():
                 context.print("[dim]Usage: /research <topic>[/dim]")
                 return True
-            context.print(f"[cyan]Starting STORM research on:[/cyan] {args.strip()}")
-            try:
-                result = self._handle_storm_research(topic=args.strip())
-                # Save to file
-                output_path = self._save_research(args.strip(), result)
-                context.print(
-                    f"[green]✓ Research complete![/green] "
-                    f"Saved to: {output_path}"
-                )
-                # Enqueue the result as a follow-up for the agent
-                context.enqueue(
-                    f"I just completed research on '{args.strip()}'. "
-                    f"The article has been saved to {output_path}. "
-                    f"Here is a summary of what I found:\n\n"
-                    f"{result[:2000]}"
-                )
-            except Exception as exc:
-                context.print(f"[red]Research failed: {exc}[/red]")
-                logger.exception("STORM research failed")
+            
+            topic = args.strip()
+            with self._lock:
+                if self._is_running:
+                    context.print(f"[red]A STORM research job is already running in the background for: '{self._active_topic}'.[/red]")
+                    return True
+                self._is_running = True
+                self._active_topic = topic
+
+            context.print(f"[cyan]Starting STORM research on:[/cyan] {topic} [dim](running in the background)...[/dim]")
+            
+            import threading
+            threading.Thread(
+                target=self._run_research_background,
+                args=(topic, context),
+                daemon=True
+            ).start()
             return True
 
         if command == "research-status":
@@ -256,9 +258,37 @@ class StormResearchExtension(Extension):
             context.print(
                 f"[cyan]Output directory:[/cyan] {self._output_dir()}"
             )
+            with self._lock:
+                if self._is_running:
+                    context.print(f"[cyan]Status:[/cyan] [yellow]Running background research on '{self._active_topic}'...[/yellow]")
+                else:
+                    context.print(f"[cyan]Status:[/cyan] idle")
             return True
 
         return False
+
+    def _run_research_background(self, topic: str, context: ExtensionContext) -> None:
+        try:
+            result = self._handle_storm_research(topic=topic)
+            output_path = self._save_research(topic, result)
+            context.print(
+                f"[green]✓ STORM Research complete for '{topic}'![/green]\n"
+                f"[green]✓ Saved to:[/green] {output_path}"
+            )
+            # Enqueue the result as a follow-up for the agent
+            context.enqueue(
+                f"I just completed research on '{topic}'. "
+                f"The article has been saved to {output_path}. "
+                f"Here is a summary of what I found:\n\n"
+                f"{result[:2000]}"
+            )
+        except Exception as exc:
+            context.print(f"[red]STORM Research failed for '{topic}': {exc}[/red]")
+            logger.exception("STORM research failed")
+        finally:
+            with self._lock:
+                self._is_running = False
+                self._active_topic = ""
 
     # ------------------------------------------------------------------
     # Tool handlers
