@@ -110,8 +110,22 @@ def _is_broken_lead(text: str, topic: str = "") -> bool:
             "STORM: lead section has %d headings (expected plain paragraphs)",
             heading_count,
         )
-        return True
+_BROKEN_SECTION_PATTERNS = re.compile(
+    r"(?:direct,? factual writing|factual writing is a style|"
+    r"direct writing is a method|the earth's atmosphere|"
+    r"the solar system consists|please provide the topic|"
+    r"paste your (?:article|text)|i am ready to (?:assist|help|write|edit)|"
+    r"as an ai|whenever you are ready)",
+    re.IGNORECASE,
+)
 
+
+def _is_broken_section(text: str) -> bool:
+    """Return True if the generated section content is placeholder, boilerplate, or off-topic junk."""
+    if not text or len(text.strip()) < 50:
+        return True
+    if _BROKEN_SECTION_PATTERNS.search(text):
+        return True
     return False
 
 # ---------------------------------------------------------------------------
@@ -539,11 +553,10 @@ class StormPipeline:
             relevant = info_table.retrieve(f"{topic} {node.name}", top_k=8)
             sources_text = self._format_search_results_with_citations(relevant)
 
-            # Format previously written sections to pass as context
+            # Format recent previously written sections to pass as context (last 2 only)
             if written_sections:
-                prev_text = ""
-                for name, content in written_sections:
-                    prev_text += f"## {name}\n{content}\n\n"
+                recent = written_sections[-2:]
+                prev_text = "\n\n".join(f"## {name}\n{content[:1500]}" for name, content in recent)
             else:
                 prev_text = "No sections have been written yet."
 
@@ -554,14 +567,30 @@ class StormPipeline:
                 relevant_sources=sources_text,
                 previous_sections=prev_text,
             )
-            node.content = self.llm(
-                "You are a direct, factual writer. Write the section content directly. "
-                "If relevant sources are provided in the prompt, base your writing on them and include citations. "
-                "If no sources are provided or they are marked as not found, write the section content using your own pre-trained knowledge on the topic and do not include any citations. "
-                "Never include any greetings, intro, self-reference, roleplay, or confirmation like 'I accept this role' or 'I am ready'. "
-                "Start writing the first paragraph of the section content immediately.",
+            content = self.llm(
+                "You are an expert encyclopedic writer. Write comprehensive and informative paragraphs about the requested section and topic.",
                 prompt,
             )
+
+            # Validation & fallback retry if model produced junk / boilerplate
+            if _is_broken_section(content):
+                logger.warning(
+                    "STORM: section %r looks broken/boilerplate, regenerating with clean fallback prompt",
+                    node.name,
+                )
+                fallback_prompt = (
+                    f"Write 2-3 detailed, informative encyclopedic paragraphs specifically about '{node.name}' "
+                    f"in the context of '{topic}'. Do not output the heading or any preamble, start directly with the paragraphs."
+                )
+                content = self.llm(
+                    "You are an expert encyclopedic writer.",
+                    fallback_prompt,
+                )
+
+            # Strip any accidentally prepended heading (e.g. "### Section Name")
+            content = re.sub(r"^#{1,6}\s+.*?\n+", "", content.strip()).strip()
+
+            node.content = content
             # Add to written sections for subsequent runs
             written_sections.append((node.name, node.content))
 

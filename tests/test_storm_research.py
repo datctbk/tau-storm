@@ -546,3 +546,44 @@ class TestStormExtensionRegistration:
         assert ext.manifest.name == "storm_research"
         assert ext.manifest.version == "0.1.0"
         assert "storm_research" in ext.manifest.system_prompt_fragment
+
+
+class TestBrokenSectionDetection:
+    def test_is_broken_section_detects_boilerplate(self):
+        from storm_research.pipeline import _is_broken_section
+
+        assert _is_broken_section("Direct, factual writing is a style of communication designed to convey information...")
+        assert _is_broken_section("The Earth's atmosphere is a complex mixture of gases held in place by gravity.")
+        assert _is_broken_section("The Solar System consists of the Sun and the celestial objects that orbit it.")
+        assert _is_broken_section("Please provide the topic, section title, or source material you wish for me to write about.")
+        assert _is_broken_section("Too short")
+        assert not _is_broken_section("AlphaZero represents the current game state as a multi-layered tensor that serves as input to the neural network.")
+
+    def test_fill_sections_retries_when_broken(self):
+        from storm_research.data import InformationTable, SectionNode
+        from storm_research.pipeline import StormPipeline
+        from storm_research.search import DuckDuckGoSearch
+
+        calls = []
+
+        def mock_llm(system: str, prompt: str) -> str:
+            calls.append((system, prompt))
+            # First call returns broken boilerplate, fallback returns valid content
+            if len(calls) == 1:
+                return "Direct, factual writing is a style of communication designed to convey information..."
+            return "Stockfish relies on classical alpha-beta minimax search while AlphaZero uses MCTS with deep neural networks."
+
+        pipeline = StormPipeline(llm_call=mock_llm, search=DuckDuckGoSearch())
+        node = SectionNode(name="Comparison to Stockfish")
+        info_table = InformationTable()
+
+        pipeline._fill_sections(
+            topic="AlphaZero",
+            node=node,
+            outline_text="## Comparison to Stockfish",
+            info_table=info_table,
+        )
+
+        assert len(calls) == 2  # initial + fallback
+        assert "Stockfish relies on classical" in node.content
+

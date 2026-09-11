@@ -188,28 +188,24 @@ Now generate the outline for {topic}:""" + _NO_REASONING
 # ---------------------------------------------------------------------------
 
 WRITE_SECTION = """\
-Write the body content for the section "{section_name}" of a comprehensive article about "{topic}" based on the source material provided below.
+You are an expert encyclopedic writer composing the section "{section_name}" for an in-depth article about "{topic}".
 
-Full article outline:
+Article Outline:
 {outline}
 
-Content of previously written sections (build on top of these, do not repeat them):
+Previous Section Excerpt (for narrative flow):
 {previous_sections}
 
-Relevant source material:
+Reference Sources:
 {relevant_sources}
 
-Write the content for this section. Requirements:
-1. Write in an encyclopedic, neutral, informative tone
-2. Include inline citations using [N] notation referencing the sources above (if sources are provided. If no sources are provided, write the section using your own pre-trained knowledge and omit citations).
-3. Be thorough but concise — aim for 2-4 paragraphs
-4. Use specific facts, dates, and details from the sources (or from your pre-trained knowledge if no sources are provided)
-5. Do not include the section heading — only the body text
-6. Do not repeat facts, definitions, or explanations that have already been covered in previous sections. Refer back to them if needed, but focus on the specific aspects of the current section.
-7. Output ONLY the final polished paragraphs — no drafts, no planning notes
-8. CRITICAL: Do NOT write any greetings, conversational intro, preamble, or acknowledgment of the role (such as "I accept this role", "I am ready", "Please provide a topic", or similar). If no relevant sources are listed above, write the section content directly using your pre-trained knowledge. Start writing the first sentence of the section text immediately.
-
-Section content (start writing directly):""" + _NO_REASONING
+Instructions:
+1. Write 2-4 comprehensive, informative paragraphs specifically covering "{section_name}" in relation to "{topic}".
+2. If reference sources are provided above, incorporate facts and include inline citation numbers like [1], [2].
+3. If no reference sources are available, write the section thoroughly based on established knowledge about "{topic}: {section_name}" without adding fake citations.
+4. Focus strictly on "{section_name}".
+5. Do NOT include the section heading. Start directly with the body text paragraphs.
+""" + _NO_REASONING
 
 # ---------------------------------------------------------------------------
 # Stage 6 — Polish article (write lead section + cleanup)
